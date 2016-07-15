@@ -1,245 +1,93 @@
 
+function isObject(o) { return Object.prototype.toString.call(o) == '[object Object]'; }
+function isArray(o) { return Object.prototype.toString.call(o) == '[object Array]'; }
+function isBoolean(o) { return Object.prototype.toString.call(o) == '[object Boolean]'; }
+function isNumber(o) { return Object.prototype.toString.call(o) == '[object Number]'; }
+function isString(o) { return Object.prototype.toString.call(o) == '[object String]'; }
 
-function show_json_table(div, results){
-    div.innerHTML = 'show json data here !';
-}
-
-function show_single_battle(div, battle){
-    console.log('show single battle here !');
-    div.innerHTML = 'show single battle here !';
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//jctr should be a table
-function table_json(jdata, has_th)
-{
-	if(jdata instanceof Array)
-	{
-		var trs = '<table><tr><tr><th>索引</th><th>值</th></tr>';
-        if(!has_th) {
-            trs = '<table>';
-        }
-		for(i in jdata)
-		{
-			//tr
-			trs += '<tr><td>';
-            var idx = Number(i)+1;
-			trs += '#' + String(idx) + '</td><td>';
-			trs += table_json(jdata[i]);
-			trs += '</td></tr>';
+function jDR(div, template, translate, editable){
+	function object_translate(template, translate){
+		var json = {}
+		for(var k in translate){
+			if(isObject(template[k])){
+				json[translate[k].title] = object_translate(template[k], translate[k].data);
+			}
+			else if(isArray(template[k])){
+				var adata = []
+				for(var i in template[k]){
+					adata.push(object_translate(template[k][i], translate[k].data));									
+				}
+				json[translate[k].title] = adata;
+			}
+			else {
+				json[translate[k]] = template[k];				
+			}
 		}
-		trs += '</table>';
-		return trs;
+		return json;
 	}
-
-	//basic type
-	if(typeof(jdata) == 'boolean' ||
-	   typeof(jdata) == 'string' ||
-	   typeof(jdata) == 'number' )
-	{
-		return String(jdata);
-	}
-
-	//object
-	if(typeof(jdata) == 'object' )
-	{
-		var trs = '<table><tr><th>字段</th><th>值</th></tr>';
-        if(!has_th) {
-            trs = '<table>';
-        }
-		for (k in jdata)
-		{
-			trs += '<tr><td>';
-			trs += k + '</td><td>';
-			trs += table_json(jdata[k], has_th);
-			trs += '</td></tr>';
+	function object_reverse_translate(data, translate){
+		var rdata = {}
+		for(var k in data){
+			var rky = k;
+			for(var rk in translate){
+				if(isObject(translate[rk]) && k == translate[rk].title){
+					rky = rk;
+					break;					
+				}
+				if (k == translate[rk]){
+					rky = rk;
+					break;
+				}
+			}
+			//////////////////////////////////////////////////////////////////////////////////				
+			if(isObject(data[k])){				
+				rdata[rky] = object_reverse_translate(data[k], translate[rky].data);
+			}
+			else if(isArray(data[k])){
+				var adata = []
+				for(var i in data[k]){
+					adata.push(object_reverse_translate(data[k][i], translate[rky].data));									
+				}
+				rdata[rky] = adata;
+			}
+			else {
+				rdata[rky] = data[k];
+			}			
 		}
-		trs += '</table>';
-		return trs;
+		return rdata;
 	}
-	else
-	{
-		console.log('error type !' + typeof(jdata));
-		return "error!!!";
-	}
-}
-function show_table_json(jtable_obj, jdata, has_th)
-{
-	var jtable = table_json(jdata, has_th);
-	jtable_obj.innerHTML = jtable;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-function append_row(item)
-{
-    var tr = item.parentElement.parentElement;
-    var last_row = new String();
-    last_row = tr.innerHTML;
-    //[]
-    var last_row_idx = tr.parentElement.rows.length ;
-    if(item.getAttribute('data-hasth') == '0')
-    {
-        //no th
-        last_row_idx += 1;
-    }
-    last_row = last_row.replace(/#[0-9]+/, '#'+String(last_row_idx));
-    tr.parentElement.innerHTML += last_row;
-}
-function remove_row(item)
-{
-    var tr = item.parentElement.parentElement;
-    tr.remove();
-}
-function form_json(jdata, has_th)
-{
-	if(jdata instanceof Array)
-	{
-		var trs = '<table><tr><th>索引</th><th>值</th><th>添加/删除</th></tr>';
-        if(!has_th){
-		    trs = '<table>';
-        }
-		for(i in jdata)
-		{
-			//tr
-			trs += '<tr><td >';
-            var idx = Number(i)+1;
-			trs += '#' + String(idx) + '</td><td>';
-			trs += form_json(jdata[i], has_th);
-			trs += '</td><td><a href="#" onclick="append_row(this);" style="margin-right:1em;" data-hasth="'+ String(has_th?1:0) +'">添加</a><a href="#" onclick="remove_row(this);">删除</a></td></tr>';
+	function object_merge(o1, o2){
+		var ro = o1;
+		for(var k in o2){
+			if(ro[k]){
+				if(isObject(ro[k])){
+					object_merge(ro[k], o2[k]);
+					continue;
+				}
+			}
+			ro[k] = o2[k];
 		}
-		trs += '</table>';
-		return trs;
+		return ro;
+	}	
+	var tjson = object_translate(template, translate);
+	/////////////////////////////////////////////////////////////////////////
+	function show_json(){
+		$(div).jsonEditor(tjson, { change: function(data){
+			console.log(data);
+			tjson = data;
+		}, propertyclick: function(path){
+			console.log(path);
+		} });
 	}
-	//basic type
-	if(typeof(jdata) == 'boolean' ||
-	   typeof(jdata) == 'number' )
-	{
-		return  '<input type="number" value="'+String(jdata)+'"/>';
-	}
-	else
-	if(typeof(jdata) == 'string')
-	{
-		if(jdata.indexOf('multi-line') >= 0)
-		{
-			return  '<textarea maxLength="1024" style="width:100%;height:16em;">'+String(jdata)+'</textarea>';
-		}
-		else
-		if(jdata.indexOf('date-time') >= 0)
-		{
-			return  '<input type="datetime-local" value="'+ jdata.split('::')[1] +'" />';
-		}
-		else
-		{
-			return  '<input type="text" maxLength="100" value="'+String(jdata)+'" />';
+	show_json();
+	return {
+		reset: function(value){
+			tjson = object_translate(value, translate);
+			show_json();
+		},
+		json: function(){
+			return object_merge(template, object_reverse_translate(tjson, translate));
 		}
 	}
-	//object
-	if(typeof(jdata) == 'object' )
-	{
-		var trs = '<table><tr><th>字段</th><th>值</th></tr>';
-        if(!has_th){
-		    trs = '<table>';
-        }
-		for (k in jdata)
-		{
-			trs += '<tr><td>';
-			trs += k + '</td><td>';
-			trs += form_json(jdata[k], has_th);
-			trs += '</td></tr>';
-		}
-		trs += '</table>';
-		return trs;
-	}
-	else
-	{
-		console.log('error type !' + typeof(jdata));
-		return "error!!!";
-	}
 }
-function get_form_json(evalue_obj, has_th)
-{
-    if(evalue_obj.tagName == 'INPUT')
-    {
-        if(evalue_obj.type == 'text')
-        {
-            return evalue_obj.value;
-        }
-        else
-        if(evalue_obj.type == 'number')
-        {
-            return Number(evalue_obj.value);
-        }
-        else
-       	if(evalue_obj.type == 'datetime-local')
-       	{
-       		console.log(evalue_obj.value);
-       		var dtoffset = (new Date()).getTimezoneOffset() * 60 ;//ms
-       		//utc time
-       		var dt = new Date(evalue_obj.value).getTime()/1000 + dtoffset;
-       		return dt;
-       	}
-    }
-    else
-    if(evalue_obj.tagName == 'TEXTAREA')
-    {
-        return evalue_obj.value;
-    }
-    else
-    if(evalue_obj.tagName == 'DIV')
-    {
-       return get_form_json(evalue_obj.children[0], has_th);
-    }
-    else
-    if(evalue_obj.tagName == 'TABLE')
-    {
-        //array
-        var jdata = [];
-        var trs = evalue_obj.children[0].children;
-	if(trs.length == 0)
-	{
-		return jdata;
-	}
-        if(trs[0].children.length == 2)
-        {
-            //object
-            jdata = {};
-        }
-        else
-        if(trs[0].children.length != 3)
-        {
-            //not obj , not array
-            return 'ERROR!!';
-        }
-        var init_idx = 1;
-        if(!has_th ){
-            init_idx = 0;
-        }
-        for( var i = init_idx; i < trs.length; ++i)
-        {
-            //tr
-            var tr = trs[i];
-            //value
-            var evobj = tr.children[1].children[0];
-            //name value
-            //index value op
-            if(typeof(jdata) == 'object')
-            {
-                var ename = tr.children[0].innerText;//td0
-                jdata[ename] = get_form_json(evobj);
-            }
-            else
-            {
-                jdata.push(get_form_json(evobj));
-            }
-        }
-        return jdata;
-    }
-    return 'ERROR!';
-}
-function show_form_json(jtable_obj, jdata, has_th)
-{
-	var jtable = form_json(jdata, has_th);
-	jtable_obj.innerHTML = jtable;
-}
+
