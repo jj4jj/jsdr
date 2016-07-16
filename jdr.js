@@ -1,12 +1,14 @@
 
-function isObject(o) { return Object.prototype.toString.call(o) == '[object Object]'; }
-function isArray(o) { return Object.prototype.toString.call(o) == '[object Array]'; }
-function isBoolean(o) { return Object.prototype.toString.call(o) == '[object Boolean]'; }
-function isNumber(o) { return Object.prototype.toString.call(o) == '[object Number]'; }
-function isString(o) { return Object.prototype.toString.call(o) == '[object String]'; }
-
-function jDR(div, template, translate, editable){
+function jDR(div, translate, editable){
+	function isObject(o) { return Object.prototype.toString.call(o) == '[object Object]'; }
+	function isArray(o) { return Object.prototype.toString.call(o) == '[object Array]'; }
+	function isBoolean(o) { return Object.prototype.toString.call(o) == '[object Boolean]'; }
+	function isNumber(o) { return Object.prototype.toString.call(o) == '[object Number]'; }
+	function isString(o) { return Object.prototype.toString.call(o) == '[object String]'; }
 	function object_translate(template, translate){
+		if(!translate){
+			return template;
+		}
 		var json = {}
 		for(var k in translate){
 			if(isObject(template[k])){
@@ -26,6 +28,9 @@ function jDR(div, template, translate, editable){
 		return json;
 	}
 	function object_reverse_translate(data, translate){
+		if(!translate){
+			return data;
+		}
 		var rdata = {}
 		for(var k in data){
 			var rky = k;
@@ -69,17 +74,21 @@ function jDR(div, template, translate, editable){
 		}
 		return ro;
 	}	
-	var tjson = object_translate(template, translate);
+	var tjson = null;
 	/////////////////////////////////////////////////////////////////////////
 	function show_json(){
+		if(tjson == null){
+			console.error('tjson is null no json data ?');
+			return;
+		}
 		$(div).jsonEditor(tjson, { change: function(data){
 			console.log(data);
 			tjson = data;
 		}, propertyclick: function(path){
 			console.log(path);
 		} });
+		
 	}
-	show_json();
 	return {
 		reset: function(value){
 			tjson = object_translate(value, translate);

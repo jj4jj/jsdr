@@ -24,7 +24,8 @@ function test_editor2(){
 				}
 			}
 		};	
-		var jdr = jDR('#editor2', json, translate, false);
+		var jdr = jDR('#editor2', translate, false);
+        jdr.reset(json);
 		var jx = jdr.json();
 		console.log(jx);
 }
@@ -77,7 +78,6 @@ $(document).ready(function() {
 
     $('#expander').click(function() {
         var editor = $('#editor');
-        editor.toggleClass('expanded');
         $(this).text(editor.hasClass('expanded') ? 'Collapse' : 'Expand all');
     });
     
