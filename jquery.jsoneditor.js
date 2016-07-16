@@ -121,25 +121,23 @@
     }
 
     function addListAppender(item, handler) {
-        var appender = $('<div>', { 'class': 'item appender' }),
-            btn      = $('<button></button>', { 'class': 'property' });
-
-        btn.text('Add New Value');
-
+        var appender = $('<div>', { 'class': 'item appender' });
         appender.append(btn);
         item.append(appender);
-
-        btn.click(handler);
-
         return appender;
     }
 
     function addNewValue(json) {
         if (isArray(json)) {
-            json.push(null);
+            if(json.length > 0){
+                json.push(json[json.length-1]);
+            }
+            else {
+                json.push(null);                
+            }
             return true;
         }
-
+        /*
         if (isObject(json)) {
             var i = 1, newName = "newKey";
 
@@ -151,6 +149,7 @@
             json[newName] = null;
             return true;
         }
+        */
 
         return false;
     }
@@ -159,12 +158,11 @@
         path = path || '';
         
         root.children('.item').remove();
-        
         for (var key in json) {
             if (!json.hasOwnProperty(key)) continue;
 
             var item     = $('<div>',   { 'class': 'item', 'data-path': path }),
-                property =   $(opt.propertyElement || '<input>', { 'class': 'property' }),
+                property =   $(opt.propertyElement || '<input>', { 'class': 'property', "readonly":""}),
                 value    =   $(opt.valueElement || '<input>', { 'class': 'value'    });
 
             if (isObject(json[key]) || isArray(json[key])) {
@@ -183,18 +181,47 @@
             property.change(propertyChanged(opt));
             value.change(valueChanged(opt));
             property.click(propertyClicked(opt));
-            
+
+
+            if(isArray(json)){
+                var btn  = $('<button></button>', { 'class': 'property rm' })
+                btn.text('x');
+                btn.click(function () {
+                    var idx = btn.prev().prev().attr('title');
+                    json.splice(idx, 1);
+                    construct(opt, json, root, path);
+                    opt.onchange(parse(stringify(opt.original)));
+                });
+                item.append(btn);   
+            }
+
             if (isObject(json[key]) || isArray(json[key])) {
-                construct(opt, json[key], item, (path ? path + '.' : '') + key);
+                var handler = function (key) {
+                        return function(){
+                            addNewValue(json[key]);
+                            construct(opt, json, root, path);
+                            opt.onchange(parse(stringify(opt.original)));                        
+                        };
+                    };
+                if(isArray(json[key])){
+                    var btn  = $('<button></button>', { 'class': 'property add' })
+                    btn.text('+');
+                    btn.click(handler(key));
+                    item.append(btn);
+                }
+                construct(opt, json[key], item, (path ? path + '.' : '') + key);                
             }
         }
 
-        if (isObject(json) || isArray(json)) {
+        //if (isObject(json) || isArray(json)) {
+        if (isArray(json)) {
+            /*
             addListAppender(root, function () {
                 addNewValue(json);
                 construct(opt, json, root, path);
                 opt.onchange(parse(stringify(opt.original)));
             })
+            */
         }
     }
 
